@@ -8,8 +8,8 @@ const recipe_sites = ["https://natashaskitchen.com/?s=QUERY", "https://www.foodn
 "https://www.spendwithpennies.com/?s=QUERY","https://www.simplyrecipes.com/search?q=QUERY"] 
 
 //simple test code 
-//const fallows = SearchForRecipe("apple pie");
-//fallows.then(console.log);
+const fallows = SearchForRecipe("apple pie");
+fallows.then(console.log);
 
 //we're using request which is 'deprecated' but in the interest of getting this in a working state, we will be using request
 //time to use async since webreqs, cool :)
@@ -45,7 +45,7 @@ async function SearchForRecipe(recipe)
 }
 
 function ParseRootPage(query, index)
-{
+{   
     return new Promise((resolve, reject) => {
         var options = {
             method:'GET',
