@@ -1,13 +1,35 @@
 const {app, BrowserWindow} = require('electron');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 let mainWindow;
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
   if (process.platform != 'darwin')
+    db.close((err) => {
+      if (err) {
+        return console.error(err.message);
+      }
+      console.log('Closed the database connection.');
+    });
     app.quit();
 });
 
+//do our db init here, which should be at native appdata with a file name of userdata.dbx
+let userDB = new sqlite3.Database(path.join(app.getPath('userData'),"userdata.dbx"), 
+    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, 
+    (err) => { 
+        if (err)
+        {
+          console.log("Error opening SQLite db!");
+          app.quit();
+        }
+        //try regenerating the table, if this doesn't error, it's first time, either way, we don't care
+        //generate our table here
+        //userDB.run("")
+        
+    });
 // This method will be called when Electron has done everything
 // initialization and ready for creating browser windows.
 app.on('ready', function() {
