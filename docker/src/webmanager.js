@@ -8,8 +8,8 @@ const recipe_sites = ["https://natashaskitchen.com/?s=QUERY", "https://www.foodn
 "https://www.spendwithpennies.com/?s=QUERY","https://www.simplyrecipes.com/search?q=QUERY"] 
 
 //simple test code 
-const fallows = SearchForRecipe("apple pie");
-fallows.then(console.log);
+//const fallows = SearchForRecipe("apple pie");
+//fallows.then(console.log);
 
 //we're using request which is 'deprecated' but in the interest of getting this in a working state, we will be using request
 //time to use async since webreqs, cool :)
@@ -23,13 +23,14 @@ async function SearchForRecipe(recipe)
             var siterecipes = await ParseRootPage(recipe, i);
             for (var x = 0; x < siterecipes.length; x++)
             {
-                siterecipes[x].then(function(result)
+                recipes.push(siterecipes[x]);
+                /*siterecipes[x].then(function(result)
                 {
                     recipes.push(result);
                 }, function(error)
                 {
                     console.log("Failed to fetch a recipe");
-                });
+                });*/
             }
         }
         catch (e)
@@ -94,12 +95,16 @@ function ParseRootPage(query, index)
 
 function ParseRecipePage(href, index)
 {
+    let timeout = 5000;
     //this is the fun part, especially when the website is programmed not great
     return new Promise((resolve, reject) => {
         var options = {
             method:'GET',
             uri:href
         };
+        const timer = setTimeout(() => {
+            reject(new Error(`Promise timed out after ${timeout} ms`));
+        }, timeout);
         request(options, (error, response, html) => {
         //yay, inline lambdas!
         if (!error && response.statusCode==200)
@@ -111,15 +116,19 @@ function ParseRecipePage(href, index)
                 case 0:
                     //let's try something more efficient :)
                     var bl2 = $('script[type="application/ld+json"]');
-                    var json = JSON.parse(bl2.text());
-                    jsondata = json["@graph"][7];
-                    //console.log(jsondata);
-                    //TODO: this data has a ton in it, like difficulty, price, etc
-                    //for now, only grab ingredients, but in the future it might be cool to integrate more of this :)
-                    if (jsondata["@type"] == "Recipe")
+                    if (bl2 != undefined)
                     {
-                        //solid recipe catch, return ingredients
-                        resolve({'ingredients':jsondata["recipeIngredient"], 'image':jsondata["image"][0], 'title':jsondata['name'],'desc':jsondata['description']});
+                        var json = JSON.parse(bl2.text());
+                        jsondata = json["@graph"][7];
+                        //console.log(jsondata);
+                        //TODO: this data has a ton in it, like difficulty, price, etc
+                        //for now, only grab ingredients, but in the future it might be cool to integrate more of this :)
+                        if (jsondata != undefined && jsondata["@type"] == "Recipe")
+                        {
+                            //solid recipe catch, return ingredients
+                            clearTimeout(timer);
+                            resolve({'ingredients':jsondata["recipeIngredient"], 'image':jsondata["image"][0], 'title':jsondata['name'],'desc':jsondata['description']});
+                        }
                     }
                     break;
                 case 1:break;
@@ -132,6 +141,7 @@ function ParseRecipePage(href, index)
         }
         else
         {
+            clearTimeout(timer);
             reject(error);
         }
     }); 
