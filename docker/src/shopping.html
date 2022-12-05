@@ -12,8 +12,8 @@
 <script type="text/javascript" src="script.js"></script>
 <script type="text/javascript" src="webmanager.js"></script>
 </head>
-<body>
-  <header>
+<body onload="displaylist()">
+  <header class="sticky-top">
     <!-- Fixed navbar -->
     <nav class="navbar navbar-expand-md navbar-dark bg-dark">
       <div class="container-fluid">
@@ -31,31 +31,93 @@
       </div>
     </nav>
   </header>
-  <ul class="list-group">
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      Eggs
-      <span class="badge bg-primary rounded-pill">14</span>
-    </li>
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      Milk
-      <span class="badge bg-primary rounded-pill">2</span>
-    </li>
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      Vanilla
-      <span class="badge bg-primary rounded-pill">1</span>
-    </li>
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      Spinach
-      <span class="badge bg-primary rounded-pill">5</span>
-    </li>
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      Parsley
-      <span class="badge bg-primary rounded-pill">6</span>
-    </li>
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      Oranges
-      <span class="badge bg-primary rounded-pill">1</span>
-    </li>
+  <div class="my-3 mx-auto container-fluid body-content">
+  <ul id="shoppinglist-holder" class="list-group">
   </ul>
+  </div>
+  <br>
+  <div class="btn-toolbar m-2 h-10 fixed-bottom m10" role="toolbar" aria-label="Toolbar with button groups">
+    <div class="btn-group me-2" role="group" aria-label="First group">
+      <button type="button" data-toggle="modal" data-target="#addmodal" data-whatever="@getbootstrap" class="btn btn-success">Add Item</button>
+    </div>
+    <script>
+      const { remote } = require('electron');
+      const { BrowserWindow } = remote;
+      function displaylist()
+      {
+        let db = remote.getGlobal("sharedData").db;
+        db.all('SELECT * FROM shoppinglist', [], (err, rows) => {
+        if (err) {
+          throw err;
+        }
+        $("#shoppinglist-holder").empty();
+        rows.forEach((row) => {
+          console.log(row.ingredient);
+          $("#shoppinglist-holder").append('<li class="list-group-item d-flex justify-content-between align-items-center">' + row.ingredient + '<span class="badge bg-primary rounded-pill">' + row.quantity + '</span></li>');
+        });
+      });
+      }
+      function additem()
+      {
+        let db = remote.getGlobal("sharedData").db;
+        console.log($("#ingredient-name").val());
+        db.run('INSERT INTO shoppinglist VALUES("' + $("#ingredient-name").val() + '","' + $("#ingredient-quantity").val() +'")', (err) => {
+	      if(err) {
+		      return console.log(err.message); 
+	      }
+        displaylist();
+        })
+      };
+      function clearlist()
+      {
+        let db = remote.getGlobal("sharedData").db;
+        $('#shoppinglist-holder').empty();
+        db.run('DELETE FROM shoppinglist', (err) => {
+	      if(err) {
+		      return console.log(err.message); 
+	      }
+      })
+      }
+      $('#addmodal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget) // Button that triggered the modal
+        var recipient = button.data('whatever') // Extract info from data-* attributes
+        // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+        // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+        //modal.find('.modal-title').text('New message to ' + recipient)
+        //modal.find('.modal-body input').val(recipient)
+      })
+    </script>
+    <div class="btn-group" role="group" aria-label="Third group">
+      <button type="button" onclick="clearlist()" class="btn btn-danger">Clear List</button>
+    </div>
+  </div>
+  <div class="modal fade" id="addmodal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Add Ingredient to List</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="form-group">
+              <label for="ingredient-name" class="col-form-label">Ingredient Name:</label>
+              <input id="ingredient-name" type="text" class="form-control" id="ingredient-name">
+            </div>
+            <div class="form-group">
+              <label for="ingredient-quantity" class="col-form-label">Quantity:</label>
+              <input type="text" class="form-control" id="ingredient-quantity">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="additem()">Add Ingredient</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

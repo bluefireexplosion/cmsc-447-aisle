@@ -1,13 +1,14 @@
 const {app, BrowserWindow} = require('electron');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const ipcMain = require('electron').ipcMain;
 
 let mainWindow;
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function() {
   if (process.platform != 'darwin')
-    db.close((err) => {
+    userDB.close((err) => {
       if (err) {
         return console.error(err.message);
       }
@@ -27,9 +28,13 @@ let userDB = new sqlite3.Database(path.join(app.getPath('userData'),"userdata.db
         }
         //try regenerating the table, if this doesn't error, it's first time, either way, we don't care
         //generate our table here
-        //userDB.run("")
+        userDB.run("CREATE TABLE IF NOT EXISTS allergies(name TEXT)")
+        userDB.run("CREATE TABLE IF NOT EXISTS cookbook(recipe TEXT)")
+        userDB.run("CREATE TABLE IF NOT EXISTS shoppinglist(ingredient TEXT, quantity REAL)")
         
     });
+global.sharedData = {db: NaN};
+global.sharedData.db = userDB;
 // This method will be called when Electron has done everything
 // initialization and ready for creating browser windows.
 app.on('ready', function() {
