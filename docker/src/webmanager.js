@@ -11,6 +11,24 @@ const recipe_sites = ["https://natashaskitchen.com/?s=QUERY", "https://www.foodn
 //const fallows = SearchForRecipe("apple pie");
 //fallows.then(console.log);
 
+async function GetFavoritesUrl(url)
+{
+    var recipes = [];
+    try
+    {
+        recipes.push(ParseRecipePage(url, 0));
+    }
+    catch (e)
+    {
+        console.log("Caught an error!");
+    }
+    finally
+    {
+        //no cleanups for now :)
+        return recipes;
+    }
+}
+
 //we're using request which is 'deprecated' but in the interest of getting this in a working state, we will be using request
 //time to use async since webreqs, cool :)
 async function SearchForRecipe(recipe)
@@ -127,7 +145,8 @@ function ParseRecipePage(href, index)
                         {
                             //solid recipe catch, return ingredients
                             clearTimeout(timer);
-                            resolve({'ingredients':jsondata["recipeIngredient"], 'image':jsondata["image"][0], 'title':jsondata['name'],'desc':jsondata['description']});
+                            console.log(jsondata);
+                            resolve({'ingredients':jsondata["recipeIngredient"], 'image':jsondata["image"][0], 'title':jsondata['name'],'desc':jsondata['description'],'url':jsondata["@id"]});
                         }
                     }
                     break;

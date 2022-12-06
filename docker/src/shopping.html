@@ -53,7 +53,7 @@
         $("#shoppinglist-holder").empty();
         rows.forEach((row) => {
           console.log(row.ingredient);
-          $("#shoppinglist-holder").append('<li class="list-group-item d-flex justify-content-between align-items-center">' + row.ingredient + '<span class="badge bg-primary rounded-pill">' + row.quantity + '</span></li>');
+          $("#shoppinglist-holder").append('<li class="list-group-item d-flex justify-content-between align-items-center"><input class="form-check-input" type="checkbox" value="" id="flexCheckDefault"> ' + row.ingredient + '<span class="badge bg-primary rounded-pill">' + row.quantity + '</span></li>');
         });
       });
       }

@@ -64,6 +64,16 @@
         </div>   
       </div>
     </div>
+    <div class="card m-1">
+      <div class="card-header">
+        Favorites Settings
+      </div>
+      <div class="card-body">
+        <div class="my-1">
+          <button type="submit" class="btn btn-danger mb-3" onclick="clearfav()">Clear favorites</button>
+        </div> 
+      </div>
+    </div>
   </div>
 </body>
 <script>
@@ -101,6 +111,15 @@
     let db = remote.getGlobal("sharedData").db;
     $('#allergen-group').empty();
     db.run('DELETE FROM allergies', (err) => {
+    if(err) {
+      return console.log(err.message); 
+    }
+  })
+  }
+  function clearfav()
+  {
+    let db = remote.getGlobal("sharedData").db;
+    db.run('DELETE FROM favorites', (err) => {
     if(err) {
       return console.log(err.message); 
     }

@@ -2,23 +2,29 @@
 <html>
 <head>
 <title>Application for Interactive Shopping List and Exploration</title>
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
- 
 <!-- Bootstrap Optional JavaScript -->
 <!-- jQuery first, then Popper.js, then Bootstrap JS -->
 <script>let $ = require('jquery');</script>
 <script>require('popper.js');</script>
-<script>require('bootstrap');</script>  
-<script type="text/javascript" src="script.js"></script>
+<script>require('bootstrap');</script>
 <script type="text/javascript" src="webmanager.js"></script>
 </head>
-<body>
-  <header>
+<body onload="init()">
+  <style>
+    .card-img-top {
+    width: 100%;
+    height: 15vw;
+    object-fit: cover;
+    }
+  </style>
+  <header class="sticky-top">
     <!-- Fixed navbar -->
-    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
       <div class="container-fluid">
         <a class="navbar-brand" href="#">Favorites</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarCollapse">
@@ -26,50 +32,217 @@
             <li class="nav-item active">
               <a class="nav-link active" aria-current="page" href="index.html">Back</a>
             </li>
-            </ul>
+          </ul>
         </div>
       </div>
     </nav>
   </header>
-  <h2> Favorites </h2>
-  <br/>
-  <div class="row row-cols-1 row-cols-md-3 g-4">
-    <div class="col">
-      <div class="card h-100">
-        <img src="..." class="card-img-top" alt="...">
-        <div class="card-body">
-          <h5 class="card-title">Card title</h5>
-          <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-        </div>
-        <div class="card-footer">
-          <small class="text-muted">Last updated 3 mins ago</small>
-        </div>
+  <div id="spinny" class="spinner-border m-5" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <div id="mainbox" class="contained-xxl m-2 bd-layout">
+  <div id="recipe-container" class="row row-cols-1 row-cols-md-3 g-4 my-2 mx-auto">
+  </div>
+
+  <nav aria-label="Page navigation example">
+    <ul id="navvv" class="pagination my-2 mx-auto">
+    </ul>
+  </nav>
+  <script>
+    const { remote } = require('electron');
+    const { BrowserWindow } = remote;
+    const log = require('electron-log');
+    var page = 0;
+    var num_pages = 0;
+    //handle a page resize event and then recalc everything
+    var per_page = 3
+    var resulto = NaN;
+    function check_allergies(recipe)
+    {
+      //promises everywhere, sheesh
+      return new Promise((resolve, reject) => {
+        //log.info("Me again!");
+        let db = remote.getGlobal("sharedData").db;
+        db.all('SELECT * FROM allergies', [], (err, rows) => {
+        if (err) {
+          reject(err);
+        }
+        //it's me, the guy
+        var arr = recipe.value['ingredients'].join('').toLowerCase();
+        //log.info(arr);
+        //log.info(rows);
+        var matches = []
+        for (var x = 0; x < rows.length; x++)
+        {
+          var row = Object.values(rows[x])[0];
+          if (arr.includes(row.toLowerCase()))
+          {
+          //  log.info("Allergy match for " + row);
+            matches.push((' ' + row).slice(1));
+          //  log.info("NEW MATCHES IS " + matches);
+          }
+        }
+        //log.info("Matches in func is " + matches);
+        resolve(matches);
+        });
+      });
+    }
+    function generate_recipe_card(recipe, notfav)
+    {
+        return new Promise((resolve, reject) => {
+        let promise = check_allergies(recipe);
+        promise.then((results) =>
+        {
+          let allergenstr = "";
+          //log.info("ressy" + results);
+          for (var i = 0; i < results.length; i++)
+          {
+            //log.info("vall is " + results[i]);
+            allergenstr += '<span class="badge bg-warning">' + results[i] + '</span>';
+          }
+          //gen funny card now!
+          //log.info("Allergies are " + results);
+          recipestr = '<div class="col"><div class="card h-100"><img src="' + recipe.value['image'] + '" class="card-img-top" alt="..."><div class="card-body"><h5 class="card-title">' + recipe.value['title'] + '</h5>' +
+          '<p class="card-text">' + recipe.value['desc'].substring(0,50) + "..." + recipe.value['desc'].substring(recipe.value['desc'].length - 10) + '</p><div class="btn-group" role="group"><button type="button" data-toggle="modal" data-target="#addmodal" data-whatever="@getbootstrap" onclick="infomodal(\'' + encodeURIComponent(recipe.value['ingredients']) + '\', \'' + encodeURIComponent(recipe.value['title']) + '\', \'' + encodeURIComponent(recipe.value['url']) + '\')" class="btn btn-primary btn-sm">Info</button><button type="button" onclick="unfavorite(\'' + encodeURIComponent(recipe.value['url']) + '\')" data-whatever="@getbootstrap" class="btn btn-danger btn-sm">Unfavorite</button></div></div><div class="card-footer"><small class="text-muted">'+allergenstr+"</small></div></div></div>"
+          //log.info("str is " + recipestr);
+          resolve(recipestr);
+        });
+      });
+    }
+    function infomodal(ingredients, title, url)
+    {
+      console.log("runbing");
+      //horrible way of doing message passing but it'll work, and no one can devtools
+      //in electron anyways, right? :)
+      var fixeding = decodeURIComponent(ingredients);
+      var fixedtit = decodeURIComponent(title);
+      $("#infoModalTitle").html(fixedtit);
+      //favingred
+      var parts = fixeding.split(',');
+      $("#favingred").empty();
+      for (var i = 0; i < parts.length; i++)
+      {
+        $("#favingred").append('<li class="list-group-item">' + parts[i] + '</li>')
+      }
+      $("#recipesite").attr("onclick",'open_ext(\'' + url + '\')');
+      console.log(fixedtit);
+      console.log(fixeding);
+
+    }
+    function unfavorite(title)
+    {
+      var titlefixed = decodeURIComponent(title);
+      console.log("favoriting " + titlefixed);
+      let db = remote.getGlobal("sharedData").db;
+      db.run('DELETE FROM favorites WHERE url="' + titlefixed +'"', (err) => {
+	      if(err) {
+		      return console.log(err.message); 
+	      }
+      });
+      load_favorites();
+    }
+    function init()
+    {
+      $("#spinny").hide();
+      //load favorites
+      load_favorites();
+    }
+    function load_favorites()
+    {
+     //create
+      //get results and do it here :)
+      $("#mainbox").hide();
+      $("#spinny").show();
+      var index = 0;
+      let db = remote.getGlobal("sharedData").db;
+        db.all('SELECT * FROM favorites', [], (err, rows) => {
+        if (err) {
+          throw err;
+        }
+        if (rows.length == 0)
+        {
+          $("#mainbox").show();
+          $("#spinny").hide();
+          $("#mainbox").append("<h4 class=\"text-center\" id=\"placeholder\">You have no favorites. Go to search to add some!</h4>")
+          return;
+        }
+        else
+        {
+          $("#placeholder").remove();
+            rows.forEach((row) => {
+                  console.log(row.url);
+                  GetFavoritesUrl(row.url).then(function(value) {
+                  Promise.allSettled(value).then(function(results) {
+                  $("#recipe-container").empty();
+                  //log.info("Results23");
+                  //log.info(results);
+                  //this is actually such awful code
+                  //and stems from my poor understanding of how
+                  //to properly use promises
+                  console.log("results!" + results);
+                  goodrecipes = []
+                  for (var i = 0; i < results.length; i++)
+                  {
+                    if (results[i].status == 'fulfilled')
+                    {
+                      //log.info(results[i]);
+                      goodrecipes.push(results[i]);
+                    }
+                  }
+                  if (page == 0)
+                  {
+                    //other promise has resolved
+                    for (var i = 0; i < goodrecipes.length; i++)
+                    {
+                        //do fun page math
+                        log.info("Running for " + page);
+                        log.info("getting for " + ((page - 1) * per_page + i));
+                        let appendo = generate_recipe_card(goodrecipes[i]).then(function(card)
+                        {
+                          //TODO: these may be out of order as a result of promiseness
+                            $("#recipe-container").append(card);
+                        });
+                    }
+                  }
+                  $("#mainbox").show();
+                  $("#spinny").hide();
+                  });
+                });
+          });
+        }
+      });
+    }
+    function open_ext(url)
+    {
+      const { shell } = require('electron');
+      let fixedurl = decodeURIComponent(url);
+      //console.log("EARL IS " + fixedurl);
+      shell.openExternal(fixedurl).then(() => {
+        console.log('hello');
+      });
+    }
+  </script>
+</div>
+<script>
+  feather.replace()
+</script>
+<div class="modal fade" id="addmodal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="infoModalTitle">Modal title</h5>
+        <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
       </div>
-    </div>
-    <div class="col">
-      <div class="card h-100">
-        <img src="..." class="card-img-top" alt="...">
-        <div class="card-body">
-          <h5 class="card-title">Card title</h5>
-          <p class="card-text">This card has supporting text below as a natural lead-in to additional content.</p>
-        </div>
-        <div class="card-footer">
-          <small class="text-muted">Last updated 3 mins ago</small>
-        </div>
+      <div class="modal-body">
+        <ol id="favingred" class="list-group list-group-numbered">
+        </ol>
       </div>
-    </div>
-    <div class="col">
-      <div class="card h-100">
-        <img src="..." class="card-img-top" alt="...">
-        <div class="card-body">
-          <h5 class="card-title">Card title</h5>
-          <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This card has even longer content than the first to show that equal height action.</p>
-        </div>
-        <div class="card-footer">
-          <small class="text-muted">Last updated 3 mins ago</small>
-        </div>
+      <div class="modal-footer">
+        <button type="button" id="recipesite" class="btn btn-primary">Recipe Website</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
+</div>
 </body>
 </html>

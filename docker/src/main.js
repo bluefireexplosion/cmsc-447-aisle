@@ -2,6 +2,7 @@ const {app, BrowserWindow} = require('electron');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const ipcMain = require('electron').ipcMain;
+const shell = require('electron').shell;
 
 let mainWindow;
 
@@ -31,7 +32,7 @@ let userDB = new sqlite3.Database(path.join(app.getPath('userData'),"userdata.db
         userDB.run("CREATE TABLE IF NOT EXISTS allergies(name TEXT)")
         userDB.run("CREATE TABLE IF NOT EXISTS cookbook(recipe TEXT)")
         userDB.run("CREATE TABLE IF NOT EXISTS shoppinglist(ingredient TEXT, quantity REAL)")
-        
+        userDB.run("CREATE TABLE IF NOT EXISTS favorites(url TEXT)")
     });
 global.sharedData = {db: NaN};
 global.sharedData.db = userDB;
@@ -40,7 +41,6 @@ global.sharedData.db = userDB;
 app.on('ready', function() {
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 800, webPreferences: {nodeIntegration: true, enableRemoteModule: true, contextIsolation: false}});
-
   // and load the index.html of the app.
   mainWindow.loadURL('file://' + __dirname + '/index.html');
 
